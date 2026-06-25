@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Print styles: when the user chooses "Download PDF" (window.print), hide the
+ * app chrome and form so only the rendered agreement is printed, laid out as a
+ * clean full-width document.
+ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  /* Strip screen layout so the document flows naturally onto pages. */
+  body,
+  main,
+  .nda-preview {
+    background: #fff !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Let the preview pane expand to full page width and avoid clipping. */
+  .nda-preview > div {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .nda-document {
+    font-size: 11pt;
+    color: #000 !important;
+  }
+
+  /* Start the Standard Terms on a fresh page after the Cover Page. */
+  .nda-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* Avoid breaking a numbered clause across pages where possible. */
+  .nda-document li {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 1in;
+  }
+}
