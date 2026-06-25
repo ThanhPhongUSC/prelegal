@@ -25,7 +25,9 @@ test.describe("Mutual NDA Creator", () => {
     const preview = page.locator(".nda-document");
     await expect(preview.getByText("Acme Inc")).toBeVisible();
     await expect(preview.getByText("Globex LLC")).toBeVisible();
-    // Governing law shows on the Cover Page and is interpolated into Section 9.
+    // Governing law shows on the Cover Page...
+    await expect(preview.getByText(/Governing Law:\s*Delaware/)).toBeVisible();
+    // ...and is interpolated once into Section 9 (the only exact "Delaware" node).
     await expect(preview.getByText("Delaware", { exact: true })).toHaveCount(1);
     await expect(preview.getByText(/laws of the State of/)).toBeVisible();
   });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NdaForm from "@/components/NdaForm";
 import { defaultNdaData, type NdaData } from "@/lib/nda";
@@ -72,6 +72,22 @@ describe("NdaForm", () => {
 
     expect(ref.latest.confidentialityChoice).toBe("perpetual");
     expect(screen.getAllByRole("spinbutton")[1]).toBeDisabled();
+  });
+
+  it("accepts a multi-digit year and ignores empty or decimal input", () => {
+    const ref = renderForm();
+    const years = screen.getAllByRole("spinbutton")[0];
+
+    fireEvent.change(years, { target: { value: "20" } });
+    expect(ref.latest.mndaTermYears).toBe(20);
+
+    // Clearing the field is ignored rather than snapping back to 1.
+    fireEvent.change(years, { target: { value: "" } });
+    expect(ref.latest.mndaTermYears).toBe(20);
+
+    // Decimal input is coerced to a whole number.
+    fireEvent.change(years, { target: { value: "2.5" } });
+    expect(ref.latest.mndaTermYears).toBe(2);
   });
 
   it("updates party fields independently", async () => {

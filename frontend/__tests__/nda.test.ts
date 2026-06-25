@@ -6,13 +6,8 @@ import {
   formatMndaTerm,
   interpolationValues,
   STANDARD_TERMS,
-  type NdaData,
 } from "@/lib/nda";
-
-const make = (overrides: Partial<NdaData> = {}): NdaData => ({
-  ...defaultNdaData,
-  ...overrides,
-});
+import { make } from "./helpers";
 
 describe("formatEffectiveDate", () => {
   it("shows a placeholder when no date is set", () => {

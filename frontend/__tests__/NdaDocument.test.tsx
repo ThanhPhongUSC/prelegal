@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import NdaDocument from "@/components/NdaDocument";
-import { defaultNdaData, type NdaData } from "@/lib/nda";
-
-const make = (overrides: Partial<NdaData> = {}): NdaData => ({
-  ...defaultNdaData,
-  ...overrides,
-});
+import { make } from "./helpers";
 
 describe("NdaDocument", () => {
   it("renders both the Cover Page and the Standard Terms", () => {

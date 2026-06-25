@@ -87,8 +87,8 @@ export default function NdaDocument({ data }: { data: NdaData }) {
       </Field>
 
       <Field label="Governing Law & Jurisdiction">
-        <p>Governing Law: {data.governingLaw || "[State]"}</p>
-        <p>Jurisdiction: {data.jurisdiction || "[city or county and state]"}</p>
+        <p>Governing Law: {values.governingLaw}</p>
+        <p>Jurisdiction: {values.jurisdiction}</p>
       </Field>
 
       <Field label="MNDA Modifications" hint="List any modifications to the MNDA">

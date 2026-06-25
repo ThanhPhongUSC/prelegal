@@ -11,6 +11,18 @@ interface NdaFormProps {
 const labelClass = "block text-sm font-medium text-gray-700";
 const inputClass =
   "mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
+const yearInputClass =
+  "w-16 rounded-md border border-gray-300 px-2 py-1 disabled:bg-gray-100";
+
+/**
+ * Parses a whole-number year from an input value. Returns null for empty or
+ * non-integer input so the caller can ignore transient/invalid states (e.g.
+ * a field the user has just cleared) rather than snapping it back to a value.
+ */
+function parseYears(value: string): number | null {
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? null : Math.max(1, n);
+}
 
 function TextField({
   label,
@@ -125,10 +137,14 @@ export default function NdaForm({ data, onChange }: NdaFormProps) {
             <input
               type="number"
               min={1}
-              className="w-16 rounded-md border border-gray-300 px-2 py-1 disabled:bg-gray-100"
+              step={1}
+              className={yearInputClass}
               value={data.mndaTermYears}
               disabled={data.mndaTermChoice !== "duration"}
-              onChange={(e) => set("mndaTermYears", Math.max(1, Number(e.target.value) || 1))}
+              onChange={(e) => {
+                const years = parseYears(e.target.value);
+                if (years !== null) set("mndaTermYears", years);
+              }}
             />
             <span>year(s) from the Effective Date</span>
           </label>
@@ -156,12 +172,14 @@ export default function NdaForm({ data, onChange }: NdaFormProps) {
             <input
               type="number"
               min={1}
-              className="w-16 rounded-md border border-gray-300 px-2 py-1 disabled:bg-gray-100"
+              step={1}
+              className={yearInputClass}
               value={data.confidentialityYears}
               disabled={data.confidentialityChoice !== "duration"}
-              onChange={(e) =>
-                set("confidentialityYears", Math.max(1, Number(e.target.value) || 1))
-              }
+              onChange={(e) => {
+                const years = parseYears(e.target.value);
+                if (years !== null) set("confidentialityYears", years);
+              }}
             />
             <span>year(s) from the Effective Date (trade secrets: until no longer a trade secret)</span>
           </label>
