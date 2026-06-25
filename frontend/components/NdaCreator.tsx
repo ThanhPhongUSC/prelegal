@@ -35,17 +35,17 @@ export default function NdaCreator() {
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-8 px-6 py-8 lg:grid-cols-2">
-        {/* Form pane */}
-        <section className="no-print">
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        {/* Form pane — same height as the preview, scrolls independently */}
+        <section className="no-print lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
             <NdaForm data={data} onChange={setData} />
           </div>
         </section>
 
-        {/* Live preview pane */}
+        {/* Live preview pane — same height as the form, scrolls independently */}
         <section className="lg:sticky lg:top-24 lg:self-start">
           <div className="nda-preview overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-            <div className="max-h-[calc(100vh-9rem)] overflow-y-auto p-10 lg:max-h-none lg:overflow-visible">
+            <div className="p-10 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
               <NdaDocument data={data} />
             </div>
           </div>
