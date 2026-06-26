@@ -1,8 +1,8 @@
 """Prelegal V1 backend.
 
-Serves the statically-built frontend and a small JSON API on port 8000. The
-foundation only includes a fake login (no authentication): it records the user
-in the temporary database and lets the frontend enter the platform.
+Serves the statically-built frontend and a small JSON API on port 8000. Supports
+multiple users: sign-up and sign-in with a hashed password, and per-user storage
+of generated document drafts. The database is throwaway and reset on each start.
 """
 
 import json
@@ -11,12 +11,13 @@ from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app import catalog, chat, db
+from app.document import CoverField
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR = Path(os.environ.get("PRELEGAL_STATIC_DIR", REPO_ROOT / "frontend" / "out"))
@@ -31,8 +32,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Prelegal", lifespan=lifespan)
 
 
-class LoginRequest(BaseModel):
+class CredentialsRequest(BaseModel):
     email: str
+    password: str
 
 
 class ChatMessage(BaseModel):
@@ -44,6 +46,21 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
 
 
+class SaveDocumentRequest(BaseModel):
+    documentType: str
+    title: str
+    fields: list[CoverField]
+
+
+def current_user(authorization: str = Header(default="")) -> dict:
+    """Resolve the ``Authorization: Bearer <token>`` header to a user, or 401."""
+    token = authorization.removeprefix("Bearer ").strip()
+    user = db.user_for_token(token) if token else None
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
@@ -53,11 +70,22 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.post("/api/signup")
+def signup(payload: CredentialsRequest) -> dict:
+    """Register a new user and return their auth token."""
+    user = db.create_user(payload.email, payload.password)
+    if user is None:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    return {"userId": user["id"], "email": user["email"], "token": user["token"]}
+
+
 @app.post("/api/login")
-def login(payload: LoginRequest) -> dict:
-    """Fake login: record the user and let them into the platform."""
-    db.upsert_user(payload.email)
-    return {"ok": True, "email": payload.email}
+def login(payload: CredentialsRequest) -> dict:
+    """Sign in an existing user and return their auth token."""
+    user = db.authenticate(payload.email, payload.password)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return {"userId": user["id"], "email": user["email"], "token": user["token"]}
 
 
 @app.get("/api/catalog")
@@ -73,6 +101,34 @@ def get_template(doc_id: str) -> dict:
         return catalog.get_template(doc_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Unknown document type")
+
+
+@app.post("/api/documents")
+def create_document(
+    payload: SaveDocumentRequest, user: dict = Depends(current_user)
+) -> dict:
+    """Save the current document draft to the signed-in user's history."""
+    return db.save_document(
+        user["id"],
+        payload.documentType,
+        payload.title,
+        [f.model_dump() for f in payload.fields],
+    )
+
+
+@app.get("/api/documents")
+def get_documents(user: dict = Depends(current_user)) -> list[dict]:
+    """List the signed-in user's saved documents, newest first."""
+    return db.list_documents(user["id"])
+
+
+@app.get("/api/documents/{doc_id}")
+def get_one_document(doc_id: int, user: dict = Depends(current_user)) -> dict:
+    """Return one of the signed-in user's saved documents in full."""
+    doc = db.get_document(user["id"], doc_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return doc
 
 
 @app.post("/api/chat")

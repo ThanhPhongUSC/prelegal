@@ -14,8 +14,10 @@ A platform for drafting common legal agreements.
 - **`Dockerfile`** — multi-stage build: the frontend is built, then the backend
   serves it. The whole app runs as a single container.
 
-Sign-in is a placeholder for now (no authentication): entering an email brings
-you into the platform.
+Users sign up and sign in with an email and password, then draft documents and
+save them to their personal history. The SQLite database is still throwaway (it
+is reset on every startup), so accounts and saved documents do not persist across
+restarts.
 
 ## Run
 
