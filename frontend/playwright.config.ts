@@ -1,8 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * E2E config. Builds and serves the production app, then runs the specs in
- * `e2e/` against it. PDF generation (page.pdf) requires headless Chromium.
+ * E2E config. Builds the static export and serves `out/` with a simple threaded
+ * HTTP server, then runs the specs in `e2e/` against it. PDF generation
+ * (page.pdf) requires headless Chromium. The backend API is not present here, so
+ * the fake login falls through to navigation (as designed).
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -16,7 +18,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "npm run build && npm run start",
+    command: "npm run build && python3 -m http.server 3000 --directory out",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
