@@ -12,10 +12,13 @@ Prelegal is a SaaS product that allows users to draft legal agreements via AI ch
 
 When instructed to build a feature, follow these steps in order — do not skip any:
 
-1. **Read the feature spec** — Use your Atlassian/Jira tools to pull the full feature instructions, move the ticket to preview after create a PR and move to done after merge the PR
+1. **Read the feature spec** — Use your Atlassian/Jira tools to pull the full feature instructions
 2. **Follow the feature-dev 7-step process** — Complete every step without skipping
 3. **Test thoroughly** — Write unit tests and integration tests; fix any issues before proceeding
-4. **Submit a PR** — Use your GitHub tools to open a pull request
+4. **Submit a PR** — Use your GitHub tools to open a pull request, then move the Jira ticket to **In Review** (the board's review/preview stage)
+5. **After the PR is merged** — Move the Jira ticket to **Done**
+
+> **Jira ticket workflow:** keep the ticket status in sync with the work — move it to **In Review** (the review/preview stage) when the PR is opened, and to **Done** once the PR is merged. The board's workflow is To Do → In Progress → In Review → Done.
 
 ---
 
@@ -39,7 +42,7 @@ When writing code that calls an LLM:
 | Container | Docker (entire project packaged) |
 | Backend | `backend/` — Python [uv](https://github.com/astral-sh/uv) project, FastAPI |
 | Frontend | `frontend/` — statically built, served via FastAPI |
-| Database | SQLite — created fresh on each container start; includes a `users` table for sign-up and sign-in |
+| Database | SQLite — created fresh on each container start; holds a `users` table (sign-up/sign-in with a hashed password + auth token) and a `documents` table (each user's saved drafts) |
 
 Backend runs at: `http://localhost:8000`
 
