@@ -19,6 +19,11 @@ The frontend must be built first (`cd frontend && npm run build`) so that
 - `GET /api/health` — health check.
 - `POST /api/login` — fake login (no authentication). Records `{email}` in the
   temporary SQLite `users` table and returns `{ok, email}`.
+- `POST /api/chat` — AI drafting chat. Takes `{messages: [{role, content}]}` and
+  streams Server-Sent Events: `delta` reply chunks, one `fields` event with the
+  extracted Mutual NDA data, then `done`. Uses LiteLLM over OpenRouter; requires
+  `OPENROUTER_API_KEY` in the environment (passed from `.env` by the start
+  scripts).
 
 ## Database
 

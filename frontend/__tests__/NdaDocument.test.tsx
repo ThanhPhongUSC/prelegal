@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import NdaDocument from "@/components/NdaDocument";
 import { make } from "./helpers";
 
@@ -75,5 +75,39 @@ describe("NdaDocument", () => {
   it("includes the Common Paper CC BY 4.0 attribution", () => {
     render(<NdaDocument data={make()} />);
     expect(screen.getByText(/CC BY 4.0/)).toBeInTheDocument();
+  });
+
+  describe("editable mode", () => {
+    it("renders inputs and reports edits via onChange", () => {
+      const onChange = vi.fn();
+      render(<NdaDocument data={make()} onChange={onChange} />);
+
+      fireEvent.change(screen.getByLabelText("Purpose"), {
+        target: { value: "Evaluate a deal" },
+      });
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({ purpose: "Evaluate a deal" }),
+      );
+
+      fireEvent.change(screen.getByLabelText("Governing Law"), {
+        target: { value: "Delaware" },
+      });
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ governingLaw: "Delaware" }),
+      );
+    });
+
+    it("edits a party field nested under the party object", () => {
+      const onChange = vi.fn();
+      render(<NdaDocument data={make()} onChange={onChange} />);
+
+      const table = screen.getByRole("table");
+      const companyInputs = within(table).getAllByLabelText("company");
+      fireEvent.change(companyInputs[0], { target: { value: "Acme Inc" } });
+
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({ party1: expect.objectContaining({ company: "Acme Inc" }) }),
+      );
+    });
   });
 });

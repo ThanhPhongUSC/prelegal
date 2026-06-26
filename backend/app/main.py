@@ -5,15 +5,18 @@ foundation only includes a fake login (no authentication): it records the user
 in the temporary database and lets the frontend enter the platform.
 """
 
+import json
 import os
+from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app import db
+from app import chat, db
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR = Path(os.environ.get("PRELEGAL_STATIC_DIR", REPO_ROOT / "frontend" / "out"))
@@ -32,6 +35,19 @@ class LoginRequest(BaseModel):
     email: str
 
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -42,6 +58,28 @@ def login(payload: LoginRequest) -> dict:
     """Fake login: record the user and let them into the platform."""
     db.upsert_user(payload.email)
     return {"ok": True, "email": payload.email}
+
+
+@app.post("/api/chat")
+def chat_endpoint(payload: ChatRequest) -> StreamingResponse:
+    """Stream the assistant reply, then emit the extracted NDA fields.
+
+    Server-Sent Events: ``delta`` chunks of reply text, one ``fields`` event with
+    the full NDA field set, then ``done``.
+    """
+    messages = [m.model_dump() for m in payload.messages]
+
+    def event_stream() -> Iterator[str]:
+        reply: list[str] = []
+        for piece in chat.stream_reply(messages):
+            reply.append(piece)
+            yield _sse("delta", {"text": piece})
+        full = [*messages, {"role": "assistant", "content": "".join(reply)}]
+        fields = chat.extract_fields(full)
+        yield _sse("fields", fields.model_dump())
+        yield _sse("done", {})
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 # Serve the static frontend export last so the API routes above take precedence.

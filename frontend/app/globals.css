@@ -36,6 +36,16 @@
     color: #000 !important;
   }
 
+  /* Editable fields print as plain text: drop borders, padding and controls. */
+  .editable-field {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    resize: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
   /* Start the Standard Terms on a fresh page after the Cover Page. */
   .nda-page-break {
     break-before: page;
