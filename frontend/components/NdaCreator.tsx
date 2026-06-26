@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import NdaForm from "@/components/NdaForm";
+import NdaChat from "@/components/NdaChat";
 import NdaDocument from "@/components/NdaDocument";
 import { defaultNdaData, type NdaData } from "@/lib/nda";
 
 /**
- * Stateful client shell: owns the form data and lays out the form alongside a
- * live preview of the rendered agreement. Kept separate from the route so
- * `app/page.tsx` can remain a Server Component.
+ * Stateful client shell: owns the agreement data and lays out the AI chat
+ * alongside a live, editable preview of the rendered Mutual NDA. The chat fills
+ * fields from the conversation; the user can also edit any field in the preview.
  */
 export default function NdaCreator() {
   const [data, setData] = useState<NdaData>(defaultNdaData);
@@ -21,7 +21,7 @@ export default function NdaCreator() {
           <div>
             <h1 className="text-lg font-semibold text-gray-900">Mutual NDA Creator</h1>
             <p className="text-sm text-gray-500">
-              Fill in the details and download a completed Mutual Non-Disclosure Agreement.
+              Chat with the assistant to draft your agreement, then download it as a PDF.
             </p>
           </div>
           <button
@@ -35,18 +35,18 @@ export default function NdaCreator() {
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-8 px-6 py-8 lg:grid-cols-2">
-        {/* Form pane — same height as the preview, scrolls independently */}
+        {/* Chat pane — same height as the preview, scrolls independently */}
         <section className="no-print lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
-            <NdaForm data={data} onChange={setData} />
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:h-[calc(100vh-9rem)]">
+            <NdaChat onFields={setData} />
           </div>
         </section>
 
-        {/* Live preview pane — same height as the form, scrolls independently */}
+        {/* Live, editable preview pane */}
         <section className="lg:sticky lg:top-24 lg:self-start">
           <div className="nda-preview overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
             <div className="p-10 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
-              <NdaDocument data={data} />
+              <NdaDocument data={data} onChange={setData} />
             </div>
           </div>
         </section>

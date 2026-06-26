@@ -1,0 +1,108 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { streamChat, type ChatMessage } from "@/lib/chat";
+import type { NdaData } from "@/lib/nda";
+
+const GREETING: ChatMessage = {
+  role: "assistant",
+  content:
+    "Hi! I'll help you draft a Mutual NDA. Tell me what it's for and who the two " +
+    "parties are, and I'll fill in the document on the right. You can also edit " +
+    "any field there directly. What's the purpose of this agreement?",
+};
+
+/**
+ * Freeform chat that drives the Mutual NDA. Each user turn streams the
+ * assistant's reply and reports the extracted fields up via `onFields`.
+ */
+export default function NdaChat({ onFields }: { onFields: (fields: NdaData) => void }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
+  const [input, setInput] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
+  async function handleSend(event: React.FormEvent) {
+    event.preventDefault();
+    const text = input.trim();
+    if (!text || streaming) return;
+
+    const sent = [...messages, { role: "user", content: text } as ChatMessage];
+    setMessages([...sent, { role: "assistant", content: "" }]);
+    setInput("");
+    setStreaming(true);
+
+    try {
+      await streamChat(sent, {
+        onDelta: (chunk) =>
+          setMessages((prev) => {
+            const next = [...prev];
+            next[next.length - 1] = {
+              role: "assistant",
+              content: next[next.length - 1].content + chunk,
+            };
+            return next;
+          }),
+        onFields,
+      });
+    } catch {
+      setMessages((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = {
+          role: "assistant",
+          content: "Sorry, something went wrong reaching the assistant. Please try again.",
+        };
+        return next;
+      });
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-1">
+        {messages.map((m, i) => (
+          <Bubble key={i} message={m} pending={streaming && i === messages.length - 1} />
+        ))}
+      </div>
+
+      <form onSubmit={handleSend} className="mt-4 flex gap-2 border-t border-gray-200 pt-4">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your answer..."
+          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+        />
+        <button
+          type="submit"
+          disabled={streaming || !input.trim()}
+          className="rounded-md bg-brand-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function Bubble({ message, pending }: { message: ChatMessage; pending: boolean }) {
+  const isUser = message.role === "user";
+  return (
+    <div className={isUser ? "flex justify-end" : "flex justify-start"}>
+      <div
+        className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
+          isUser ? "bg-brand-primary text-white" : "bg-gray-100 text-gray-900"
+        }`}
+      >
+        {message.content || (pending ? "..." : "")}
+      </div>
+    </div>
+  );
+}

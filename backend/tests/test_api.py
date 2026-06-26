@@ -60,3 +60,27 @@ def test_static_index_served(client):
     resp = client.get("/")
     assert resp.status_code == 200
     assert "Prelegal" in resp.text
+
+
+def test_chat_streams_reply_then_fields(client, monkeypatch):
+    """The chat endpoint streams delta chunks, then the extracted fields."""
+    from app import chat
+    from app.nda import NdaFields
+
+    monkeypatch.setattr(chat, "stream_reply", lambda messages: iter(["Hello ", "there"]))
+    monkeypatch.setattr(
+        chat,
+        "extract_fields",
+        lambda messages: NdaFields(purpose="Evaluate partnership", governingLaw="Delaware"),
+    )
+
+    resp = client.post("/api/chat", json={"messages": [{"role": "user", "content": "hi"}]})
+    assert resp.status_code == 200
+    body = resp.text
+
+    assert "event: delta" in body
+    assert "Hello " in body and "there" in body
+    assert "event: fields" in body
+    assert "Evaluate partnership" in body
+    assert "Delaware" in body
+    assert "event: done" in body

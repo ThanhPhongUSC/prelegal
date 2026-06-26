@@ -6,8 +6,10 @@ import {
   formatEffectiveDate,
   formatMndaTerm,
   interpolationValues,
+  type ConfidentialityChoice,
   type NdaData,
   type PartyDetails,
+  type TermChoice,
 } from "@/lib/nda";
 
 /**
@@ -40,13 +42,65 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-/** A single party's column in the signature block. */
-function partyCell(party: PartyDetails, field: keyof PartyDetails) {
-  return <span className="whitespace-pre-wrap">{party[field] || " "}</span>;
+// Seamless inputs used when the document is editable. Print CSS strips their
+// chrome (see globals.css) so the printed PDF still reads as plain text.
+const editInput =
+  "editable-field w-full rounded border border-dashed border-gray-300 bg-white px-2 py-1 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary";
+const editSelect = `${editInput} w-auto`;
+const editNumber = `${editInput} w-16`;
+
+function clampYears(value: string): number {
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? 1 : Math.max(1, n);
 }
 
-export default function NdaDocument({ data }: { data: NdaData }) {
+/** One party's column in the signature block — editable input or plain text. */
+function PartyCell({
+  party,
+  field,
+  onChange,
+}: {
+  party: PartyDetails;
+  field: keyof PartyDetails;
+  onChange?: (field: keyof PartyDetails, value: string) => void;
+}) {
+  if (!onChange) {
+    return <span className="whitespace-pre-wrap">{party[field] || " "}</span>;
+  }
+  if (field === "noticeAddress") {
+    return (
+      <textarea
+        aria-label="Notice Address"
+        rows={2}
+        className={editInput}
+        value={party[field]}
+        onChange={(e) => onChange(field, e.target.value)}
+      />
+    );
+  }
+  return (
+    <input
+      aria-label={field}
+      className={editInput}
+      value={party[field]}
+      onChange={(e) => onChange(field, e.target.value)}
+    />
+  );
+}
+
+export default function NdaDocument({
+  data,
+  onChange,
+}: {
+  data: NdaData;
+  onChange?: (data: NdaData) => void;
+}) {
   const values = interpolationValues(data);
+  const editable = !!onChange;
+  const set = <K extends keyof NdaData>(key: K, value: NdaData[K]) =>
+    onChange?.({ ...data, [key]: value });
+  const setParty = (party: "party1" | "party2", field: keyof PartyDetails, value: string) =>
+    onChange?.({ ...data, [party]: { ...data[party], [field]: value } });
 
   const signatureRows: { label: string; field?: keyof PartyDetails }[] = [
     { label: "Signature" },
@@ -73,26 +127,136 @@ export default function NdaDocument({ data }: { data: NdaData }) {
       </p>
 
       <Field label="Purpose" hint="How Confidential Information may be used">
-        {data.purpose || "[Describe the purpose]"}
+        {editable ? (
+          <textarea
+            aria-label="Purpose"
+            rows={3}
+            className={editInput}
+            value={data.purpose}
+            onChange={(e) => set("purpose", e.target.value)}
+          />
+        ) : (
+          data.purpose || "[Describe the purpose]"
+        )}
       </Field>
 
-      <Field label="Effective Date">{formatEffectiveDate(data.effectiveDate)}</Field>
+      <Field label="Effective Date">
+        {editable ? (
+          <input
+            type="date"
+            aria-label="Effective Date"
+            className={editSelect}
+            value={data.effectiveDate}
+            onChange={(e) => set("effectiveDate", e.target.value)}
+          />
+        ) : (
+          formatEffectiveDate(data.effectiveDate)
+        )}
+      </Field>
 
       <Field label="MNDA Term" hint="The length of this MNDA">
-        {formatMndaTerm(data)}
+        {editable ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="MNDA Term type"
+              className={editSelect}
+              value={data.mndaTermChoice}
+              onChange={(e) => set("mndaTermChoice", e.target.value as TermChoice)}
+            >
+              <option value="duration">Expires after</option>
+              <option value="openEnded">Continues until terminated</option>
+            </select>
+            {data.mndaTermChoice === "duration" && (
+              <>
+                <input
+                  type="number"
+                  min={1}
+                  aria-label="MNDA Term years"
+                  className={editNumber}
+                  value={data.mndaTermYears}
+                  onChange={(e) => set("mndaTermYears", clampYears(e.target.value))}
+                />
+                <span>year(s) from the Effective Date</span>
+              </>
+            )}
+          </div>
+        ) : (
+          formatMndaTerm(data)
+        )}
       </Field>
 
       <Field label="Term of Confidentiality" hint="How long Confidential Information is protected">
-        {formatConfidentiality(data)}
+        {editable ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="Confidentiality type"
+              className={editSelect}
+              value={data.confidentialityChoice}
+              onChange={(e) =>
+                set("confidentialityChoice", e.target.value as ConfidentialityChoice)
+              }
+            >
+              <option value="duration">Expires after</option>
+              <option value="perpetual">In perpetuity</option>
+            </select>
+            {data.confidentialityChoice === "duration" && (
+              <>
+                <input
+                  type="number"
+                  min={1}
+                  aria-label="Confidentiality years"
+                  className={editNumber}
+                  value={data.confidentialityYears}
+                  onChange={(e) => set("confidentialityYears", clampYears(e.target.value))}
+                />
+                <span>year(s) from the Effective Date</span>
+              </>
+            )}
+          </div>
+        ) : (
+          formatConfidentiality(data)
+        )}
       </Field>
 
       <Field label="Governing Law & Jurisdiction">
-        <p>Governing Law: {values.governingLaw}</p>
-        <p>Jurisdiction: {values.jurisdiction}</p>
+        {editable ? (
+          <div className="space-y-2">
+            <input
+              aria-label="Governing Law"
+              placeholder="Governing Law (State)"
+              className={editInput}
+              value={data.governingLaw}
+              onChange={(e) => set("governingLaw", e.target.value)}
+            />
+            <input
+              aria-label="Jurisdiction"
+              placeholder="Jurisdiction (city/county and state)"
+              className={editInput}
+              value={data.jurisdiction}
+              onChange={(e) => set("jurisdiction", e.target.value)}
+            />
+          </div>
+        ) : (
+          <>
+            <p>Governing Law: {values.governingLaw}</p>
+            <p>Jurisdiction: {values.jurisdiction}</p>
+          </>
+        )}
       </Field>
 
       <Field label="MNDA Modifications" hint="List any modifications to the MNDA">
-        <span className="whitespace-pre-wrap">{data.modifications || "None."}</span>
+        {editable ? (
+          <textarea
+            aria-label="MNDA Modifications"
+            rows={2}
+            placeholder="None."
+            className={editInput}
+            value={data.modifications}
+            onChange={(e) => set("modifications", e.target.value)}
+          />
+        ) : (
+          <span className="whitespace-pre-wrap">{data.modifications || "None."}</span>
+        )}
       </Field>
 
       <p className="mb-4 text-sm">
@@ -113,10 +277,26 @@ export default function NdaDocument({ data }: { data: NdaData }) {
             <tr key={row.label}>
               <td className="border border-gray-400 p-2 font-semibold">{row.label}</td>
               <td className="border border-gray-400 p-2">
-                {row.field ? partyCell(data.party1, row.field) : " "}
+                {row.field ? (
+                  <PartyCell
+                    party={data.party1}
+                    field={row.field}
+                    onChange={editable ? (f, v) => setParty("party1", f, v) : undefined}
+                  />
+                ) : (
+                  " "
+                )}
               </td>
               <td className="border border-gray-400 p-2">
-                {row.field ? partyCell(data.party2, row.field) : " "}
+                {row.field ? (
+                  <PartyCell
+                    party={data.party2}
+                    field={row.field}
+                    onChange={editable ? (f, v) => setParty("party2", f, v) : undefined}
+                  />
+                ) : (
+                  " "
+                )}
               </td>
             </tr>
           ))}
