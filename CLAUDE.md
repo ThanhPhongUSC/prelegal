@@ -12,13 +12,13 @@ Prelegal is a SaaS product that allows users to draft legal agreements via AI ch
 
 When instructed to build a feature, follow these steps in order — do not skip any:
 
-1. **Read the feature spec** — Use your Atlassian/Jira tools to pull the full feature instructions
+1. **Read the feature spec** — Use your Atlassian/Jira tools to pull the full feature instructions, then move the Jira ticket to **In Progress**
 2. **Follow the feature-dev 7-step process** — Complete every step without skipping
 3. **Test thoroughly** — Write unit tests and integration tests; fix any issues before proceeding
-4. **Submit a PR** — Use your GitHub tools to open a pull request, then move the Jira ticket to **In Review** (the board's review/preview stage)
+4. **Submit a PR** — Use your GitHub tools to open a pull request, then move the Jira ticket to **In Review**
 5. **After the PR is merged** — Move the Jira ticket to **Done**
 
-> **Jira ticket workflow:** keep the ticket status in sync with the work — move it to **In Review** (the review/preview stage) when the PR is opened, and to **Done** once the PR is merged. The board's workflow is To Do → In Progress → In Review → Done.
+> **Jira ticket workflow:** keep the ticket status in sync with the work — move it to **In Progress** when you start working on it, **In Review** when the PR is opened, and **Done** once the PR is merged. The board's workflow is To Do → In Progress → In Review → Done.
 
 ---
 
