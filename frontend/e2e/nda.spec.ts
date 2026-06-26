@@ -5,7 +5,7 @@ import path from "node:path";
 
 test.describe("Mutual NDA Creator", () => {
   test("renders the form and a live preview", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/creator/");
     await expect(page.getByRole("heading", { name: "Mutual NDA Creator" })).toBeVisible();
     // The preview already shows the document title and Standard Terms.
     await expect(
@@ -15,7 +15,7 @@ test.describe("Mutual NDA Creator", () => {
   });
 
   test("typing in the form updates the live preview", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/creator/");
 
     await page.getByLabel("Governing Law (State)").fill("Delaware");
     await page.getByLabel("Jurisdiction (city/county and state)").fill("New Castle County, Delaware");
@@ -35,7 +35,7 @@ test.describe("Mutual NDA Creator", () => {
   test("switching the term to open-ended disables the years input and updates the doc", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/creator/");
     const years = page.getByRole("spinbutton").first();
     await expect(years).toBeEnabled();
 
@@ -48,7 +48,7 @@ test.describe("Mutual NDA Creator", () => {
   });
 
   test("print layout hides the app chrome (form + header button)", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/creator/");
     const downloadButton = page.getByRole("button", { name: "Download PDF" });
     await expect(downloadButton).toBeVisible();
 
@@ -62,7 +62,7 @@ test.describe("Mutual NDA Creator", () => {
   });
 
   test("generates a non-trivial, multi-page PDF of the completed agreement", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/creator/");
     await page.getByLabel("Governing Law (State)").fill("Delaware");
     await page.getByLabel("Company").first().fill("Acme Inc");
 

@@ -1,5 +1,5 @@
-import NdaCreator from "@/components/NdaCreator";
+import LoginScreen from "@/components/LoginScreen";
 
 export default function Home() {
-  return <NdaCreator />;
+  return <LoginScreen />;
 }
