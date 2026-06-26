@@ -17,8 +17,14 @@ The frontend must be built first (`cd frontend && npm run build`) so that
 ## API
 
 - `GET /api/health` — health check.
-- `POST /api/login` — fake login (no authentication). Records `{email}` in the
-  temporary SQLite `users` table and returns `{ok, email}`.
+- `POST /api/signup` — register a user `{email, password}`; returns
+  `{userId, email, token}` (409 if the email is taken).
+- `POST /api/login` — sign in `{email, password}`; returns
+  `{userId, email, token}` (401 on bad credentials).
+- `POST /api/documents` — save the current draft to the signed-in user's history
+  (`Authorization: Bearer <token>`). Takes `{documentType, title, fields}`.
+- `GET /api/documents` — list the signed-in user's saved documents, newest first.
+- `GET /api/documents/{id}` — one saved document in full (404 if not the user's).
 - `GET /api/catalog` — the supported document types as `{id, name, description}`.
 - `GET /api/template/{id}` — the Standard Terms for a document type as
   `{id, name, markdown}` (404 for an unknown id).
@@ -31,8 +37,9 @@ The frontend must be built first (`cd frontend && npm run build`) so that
 
 ## Database
 
-SQLite, recreated fresh on every startup (a throwaway store for the V1
-foundation). Path is `backend/prelegal.db`, overridable via `PRELEGAL_DB_PATH`.
+SQLite, recreated fresh on every startup (a throwaway store for V1). Holds
+`users` (email + salted password hash + auth token) and `documents` (each user's
+saved drafts). Path is `backend/prelegal.db`, overridable via `PRELEGAL_DB_PATH`.
 
 ## Tests
 

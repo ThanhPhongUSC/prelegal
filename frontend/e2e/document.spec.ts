@@ -1,8 +1,18 @@
 import { test, expect } from "@playwright/test";
 
 // These checks avoid the live LLM: they cover the page shell, the chat greeting,
-// the empty-state preview, and the print stylesheet — all deterministic.
+// the empty-state preview, and the print stylesheet — all deterministic. The
+// creator requires a signed-in user, so we inject an auth token before loading.
 test.describe("Document Creator", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "prelegal.auth",
+        JSON.stringify({ userId: 1, email: "user@example.com", token: "test-token" }),
+      );
+    });
+  });
+
   test("renders the chat and the empty-state preview", async ({ page }) => {
     await page.goto("/creator/");
     await expect(page.getByRole("heading", { name: "Document Creator" })).toBeVisible();

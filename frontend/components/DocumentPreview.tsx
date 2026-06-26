@@ -54,6 +54,11 @@ export default function DocumentPreview({
 
   return (
     <article className="doc-body font-serif text-[15px] leading-relaxed text-gray-900">
+      <p className="disclaimer mb-6 rounded border-l-4 border-brand-accent bg-amber-50 px-4 py-2 text-xs not-italic text-gray-600">
+        This document is a draft generated for convenience and is subject to legal
+        review. It is not legal advice.
+      </p>
+
       <h1 className="mb-6 text-2xl font-bold">{template?.name ?? "Document"}</h1>
 
       {draft.fields.length > 0 && (
