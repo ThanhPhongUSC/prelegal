@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import NdaChat from "@/components/NdaChat";
-import { defaultNdaData } from "@/lib/nda";
+import DocumentChat from "@/components/DocumentChat";
 import type { StreamHandlers } from "@/lib/chat";
 
 const { streamChat } = vi.hoisted(() => ({ streamChat: vi.fn() }));
@@ -13,7 +12,7 @@ async function send(text: string) {
   await userEvent.click(screen.getByRole("button", { name: /send/i }));
 }
 
-describe("NdaChat", () => {
+describe("DocumentChat", () => {
   // Block body: mockReset() returns the spy, and a hook's return value is run as
   // a teardown callback — returning it would invoke streamChat with no args.
   beforeEach(() => {
@@ -21,33 +20,37 @@ describe("NdaChat", () => {
   });
 
   it("shows an opening assistant message", () => {
-    render(<NdaChat onFields={vi.fn()} />);
-    expect(screen.getByText(/help you draft a Mutual NDA/i)).toBeInTheDocument();
+    render(<DocumentChat onDraft={vi.fn()} />);
+    expect(screen.getByText(/help you draft a legal agreement/i)).toBeInTheDocument();
   });
 
-  it("sends a message, streams the reply, and reports extracted fields", async () => {
+  it("streams the reply, reports the draft, and refocuses the input", async () => {
     streamChat.mockImplementation(async (_messages, handlers: StreamHandlers) => {
-      handlers.onDelta("Got ");
-      handlers.onDelta("it!");
-      handlers.onFields({ ...defaultNdaData, purpose: "Evaluate partnership" });
+      handlers.onDelta("Sure! ");
+      handlers.onDelta("Let's start.");
+      handlers.onDraft({
+        documentType: "CSA",
+        fields: [{ label: "Provider", value: "Acme Inc" }],
+      });
     });
-    const onFields = vi.fn();
-    render(<NdaChat onFields={onFields} />);
+    const onDraft = vi.fn();
+    render(<DocumentChat onDraft={onDraft} />);
 
-    await send("A mutual NDA");
+    await send("I need a cloud service agreement");
 
-    expect(screen.getByText("A mutual NDA")).toBeInTheDocument();
-    expect(await screen.findByText("Got it!")).toBeInTheDocument();
-    expect(onFields).toHaveBeenCalledWith(
-      expect.objectContaining({ purpose: "Evaluate partnership" }),
+    expect(await screen.findByText("Sure! Let's start.")).toBeInTheDocument();
+    expect(onDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ documentType: "CSA" }),
     );
+    // Enhancement: focus returns to the input after answering.
+    expect(document.activeElement).toBe(screen.getByPlaceholderText(/type your answer/i));
   });
 
   it("shows an error message when streaming fails", async () => {
     streamChat.mockImplementation(async () => {
       throw new Error("network");
     });
-    render(<NdaChat onFields={vi.fn()} />);
+    render(<DocumentChat onDraft={vi.fn()} />);
 
     await send("hello");
 

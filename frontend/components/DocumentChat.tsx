@@ -2,25 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { streamChat, type ChatMessage } from "@/lib/chat";
-import type { NdaData } from "@/lib/nda";
+import type { DocumentDraft } from "@/lib/document";
 
 const GREETING: ChatMessage = {
   role: "assistant",
   content:
-    "Hi! I'll help you draft a Mutual NDA. Tell me what it's for and who the two " +
-    "parties are, and I'll fill in the document on the right. You can also edit " +
-    "any field there directly. What's the purpose of this agreement?",
+    "Hi! I can help you draft a legal agreement. What kind of document do you " +
+    "need? If it's one we support, I'll guide you through it and fill in the " +
+    "preview on the right as we go.",
 };
 
 /**
- * Freeform chat that drives the Mutual NDA. Each user turn streams the
- * assistant's reply and reports the extracted fields up via `onFields`.
+ * Freeform chat that drives the document draft. Each user turn streams the
+ * assistant's reply and reports the extracted draft up via `onDraft`.
  */
-export default function NdaChat({ onFields }: { onFields: (fields: NdaData) => void }) {
+export default function DocumentChat({
+  onDraft,
+}: {
+  onDraft: (draft: DocumentDraft) => void;
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -48,7 +53,7 @@ export default function NdaChat({ onFields }: { onFields: (fields: NdaData) => v
             };
             return next;
           }),
-        onFields,
+        onDraft,
       });
     } catch {
       setMessages((prev) => {
@@ -61,6 +66,8 @@ export default function NdaChat({ onFields }: { onFields: (fields: NdaData) => v
       });
     } finally {
       setStreaming(false);
+      // Return focus to the input so the user can keep answering uninterrupted.
+      inputRef.current?.focus();
     }
   }
 
@@ -74,6 +81,7 @@ export default function NdaChat({ onFields }: { onFields: (fields: NdaData) => v
 
       <form onSubmit={handleSend} className="mt-4 flex gap-2 border-t border-gray-200 pt-4">
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}

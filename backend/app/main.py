@@ -11,12 +11,12 @@ from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app import chat, db
+from app import catalog, chat, db
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR = Path(os.environ.get("PRELEGAL_STATIC_DIR", REPO_ROOT / "frontend" / "out"))
@@ -60,12 +60,27 @@ def login(payload: LoginRequest) -> dict:
     return {"ok": True, "email": payload.email}
 
 
+@app.get("/api/catalog")
+def get_catalog() -> list[dict]:
+    """The supported document types as ``{id, name, description}``."""
+    return catalog.supported_types()
+
+
+@app.get("/api/template/{doc_id}")
+def get_template(doc_id: str) -> dict:
+    """The Standard Terms for a document type as ``{id, name, markdown}``."""
+    try:
+        return catalog.get_template(doc_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Unknown document type")
+
+
 @app.post("/api/chat")
 def chat_endpoint(payload: ChatRequest) -> StreamingResponse:
-    """Stream the assistant reply, then emit the extracted NDA fields.
+    """Stream the assistant reply, then emit the extracted document draft.
 
-    Server-Sent Events: ``delta`` chunks of reply text, one ``fields`` event with
-    the full NDA field set, then ``done``.
+    Server-Sent Events: ``delta`` chunks of reply text, one ``draft`` event with
+    the in-progress document (type + cover-page fields), then ``done``.
     """
     messages = [m.model_dump() for m in payload.messages]
 
@@ -75,8 +90,8 @@ def chat_endpoint(payload: ChatRequest) -> StreamingResponse:
             reply.append(piece)
             yield _sse("delta", {"text": piece})
         full = [*messages, {"role": "assistant", "content": "".join(reply)}]
-        fields = chat.extract_fields(full)
-        yield _sse("fields", fields.model_dump())
+        draft = chat.extract_draft(full)
+        yield _sse("draft", draft.model_dump())
         yield _sse("done", {})
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

@@ -2,10 +2,10 @@
  * Client for the streaming chat endpoint (`POST /api/chat`).
  *
  * The backend replies with Server-Sent Events: `delta` chunks of reply text,
- * one `fields` event carrying the full extracted NDA data, then `done`.
+ * one `draft` event carrying the in-progress document draft, then `done`.
  */
 
-import type { NdaData } from "@/lib/nda";
+import type { DocumentDraft } from "@/lib/document";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -14,13 +14,13 @@ export interface ChatMessage {
 
 export interface StreamHandlers {
   onDelta: (text: string) => void;
-  onFields: (fields: NdaData) => void;
+  onDraft: (draft: DocumentDraft) => void;
 }
 
 /** Streams one assistant turn, invoking handlers as events arrive. */
 export async function streamChat(
   messages: ChatMessage[],
-  { onDelta, onFields }: StreamHandlers,
+  { onDelta, onDraft }: StreamHandlers,
 ): Promise<void> {
   const res = await fetch("/api/chat", {
     method: "POST",
@@ -43,7 +43,7 @@ export async function streamChat(
     while ((sep = buffer.indexOf("\n\n")) !== -1) {
       const raw = buffer.slice(0, sep);
       buffer = buffer.slice(sep + 2);
-      dispatch(raw, onDelta, onFields);
+      dispatch(raw, onDelta, onDraft);
     }
   }
 }
@@ -51,7 +51,7 @@ export async function streamChat(
 function dispatch(
   raw: string,
   onDelta: (text: string) => void,
-  onFields: (fields: NdaData) => void,
+  onDraft: (draft: DocumentDraft) => void,
 ): void {
   let event = "message";
   let data = "";
@@ -62,5 +62,5 @@ function dispatch(
   if (!data) return;
 
   if (event === "delta") onDelta(JSON.parse(data).text as string);
-  else if (event === "fields") onFields(JSON.parse(data) as NdaData);
+  else if (event === "draft") onDraft(JSON.parse(data) as DocumentDraft);
 }
