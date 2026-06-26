@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import NdaChat from "@/components/NdaChat";
-import NdaDocument from "@/components/NdaDocument";
-import { defaultNdaData, type NdaData } from "@/lib/nda";
+import DocumentChat from "@/components/DocumentChat";
+import DocumentPreview from "@/components/DocumentPreview";
+import { emptyDraft, type DocumentDraft } from "@/lib/document";
 
 /**
- * Stateful client shell: owns the agreement data and lays out the AI chat
- * alongside a live, editable preview of the rendered Mutual NDA. The chat fills
- * fields from the conversation; the user can also edit any field in the preview.
+ * Stateful client shell: owns the document draft and lays out the AI chat
+ * alongside a live, editable preview. The chat fills the draft from the
+ * conversation; the user can also edit any field in the preview.
  */
-export default function NdaCreator() {
-  const [data, setData] = useState<NdaData>(defaultNdaData);
+export default function DocumentCreator() {
+  const [draft, setDraft] = useState<DocumentDraft>(emptyDraft);
 
   return (
     <main className="min-h-screen bg-gray-100">
@@ -19,7 +19,7 @@ export default function NdaCreator() {
       <header className="no-print sticky top-0 z-10 border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Mutual NDA Creator</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Document Creator</h1>
             <p className="text-sm text-gray-500">
               Chat with the assistant to draft your agreement, then download it as a PDF.
             </p>
@@ -38,15 +38,15 @@ export default function NdaCreator() {
         {/* Chat pane — same height as the preview, scrolls independently */}
         <section className="no-print lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:h-[calc(100vh-9rem)]">
-            <NdaChat onFields={setData} />
+            <DocumentChat onDraft={setDraft} />
           </div>
         </section>
 
         {/* Live, editable preview pane */}
         <section className="lg:sticky lg:top-24 lg:self-start">
-          <div className="nda-preview overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="doc-preview overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
             <div className="p-10 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
-              <NdaDocument data={data} onChange={setData} />
+              <DocumentPreview draft={draft} onChange={setDraft} />
             </div>
           </div>
         </section>
